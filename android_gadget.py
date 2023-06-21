@@ -40,8 +40,8 @@ def check_for_so():
     path = os.getcwd()
     decode_apk()
     ext_path = "\\base\\lib\\"
-    for files in os.listdir(path+ext_path):
-        if any(File.endswith(".so") for File in os.listdir(path+ext_path+files)):
+    for files in os.listdir(normalize_path(path+ext_path)):
+        if any(File.endswith(".so") for File in os.listdir(normalize_path(path+ext_path+files))):
                so_file = True
     return so_file
 
@@ -59,7 +59,7 @@ def manifest(app_name):
 
 def decode_apk():
     path = os.getcwd()
-    apk_tool_decode= subprocess.Popen((path+"\\apktool.bat", "d", "base.apk","-f"),stdout=subprocess.PIPE).stdout
+    apk_tool_decode= subprocess.Popen((normalize_path(path+("\\apktool.bat" if os_type=="win" else "\\apktool.sh")), "d", "base.apk","-f"),stdout=subprocess.PIPE).stdout
     for line in apk_tool_decode:
         print(line.decode('utf-8'))
     apk_tool_decode.close()
@@ -67,7 +67,7 @@ def decode_apk():
 def encode_sign_apk():
     path = os.getcwd()
     print ("Building the apk")
-    apk_tool_encode= subprocess.Popen((path+"\\apktool.bat", "b", "-f","base"),stdout=subprocess.PIPE).stdout
+    apk_tool_encode= subprocess.Popen((normalize_path(path+("\\apktool.bat" if os_type=="win" else "\\apktool.sh")), "b", "-f","base"),stdout=subprocess.PIPE).stdout
     for line in apk_tool_encode:
         print(line.decode('utf-8'))
     apk_tool_encode.close()
@@ -82,7 +82,7 @@ def encode_sign_apk():
         for block in response.iter_content(1024):
             handle.write(block)
     print("signing the apk")
-    subprocess.call(['java', '-jar', name, '-a', path+'\\base\\dist\\'])
+    subprocess.call(['java', '-jar', name, '-a', normalize_path(path+'\\base\\dist\\')])
     print ("apk signed")
 
 def install_apk():
@@ -90,7 +90,7 @@ def install_apk():
     adb = Client(host='127.0.0.1',port=5037)
     devices = adb.devices()
     mydevice = devices[0]
-    install = mydevice.install(path+'\\base\\dist\\base-aligned-debugSigned.apk')
+    install = mydevice.install(normalize_path(path+'\\base\\dist\\base-aligned-debugSigned.apk'))
     return install
 
 
@@ -101,8 +101,14 @@ def line_num_for_phrase_in_file(phrase, filename):
                 return i
     return -1
     
+def normalize_path(path):
+    path = path.replace("\\", "/")  # Make the slashes consistent
+    return os.path.normpath(path)  # Convert to the normal form for the current OS
+
 
 path = os.getcwd()
+
+os_type = "win" if os.name == "nt" else "nix"
 
 adb_started = False
 while adb_started is False:
@@ -118,18 +124,18 @@ while adb_started is False:
         with open('libfrida.so.xz', 'wb') as handle:
             for block in response.iter_content(1024):
                 handle.write(block)
-        with lzma.open(path+"\\libfrida.so.xz") as f, open('libfrida.so', 'wb') as fout:
+        with lzma.open(normalize_path(path+"\\libfrida.so.xz")) as f, open('libfrida.so', 'wb') as fout:
             file_content = f.read()
             fout.write(file_content)
         pull_apk(target)
         ext_path = "\\base\\lib\\"
         check_for_so()
         if check_for_so:
-            for files in os.listdir(path+ext_path):
-                test = os.listdir(path+ext_path+files)
+            for files in os.listdir(normalize_path(path+ext_path)):
+                test = os.listdir(normalize_path(path+ext_path+files))
                 for file in test:
                     try:
-                        so_files = (path+ext_path+files+"\\"+file).strip()
+                        so_files = (normalize_path(path+ext_path+files+"\\"+file)).strip()
                         libnative = lief.parse(so_files)
                         libnative.add_library("libfrida.so")
                         libnative.write(so_files)
@@ -144,7 +150,7 @@ while adb_started is False:
         if result:
             print ("Looking for smali injection point\n")
             acti_name = activity.split('.')[-1]
-            for folder, dirs, files in os.walk(path+"\\base\\smali\\"):
+            for folder, dirs, files in os.walk(normalize_path(path+"\\base\\smali\\")):
                 for file in files:
                     fullpath = os.path.join(folder, file)
                     with open(fullpath, 'r') as f:
