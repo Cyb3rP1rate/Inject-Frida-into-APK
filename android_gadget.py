@@ -1,11 +1,11 @@
 import subprocess
-import requests
+import requests #pip install requests
 import os
-import lief
-import lzma
+import lief #pip install lief
+import lzma 
 import subprocess
 
-from ppadb.client import Client
+from ppadb.client import Client #pip install pure-python-adb
 
 
 target = "<ENTER APP NAME HERE>"
