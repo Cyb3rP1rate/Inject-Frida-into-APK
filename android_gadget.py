@@ -1,15 +1,11 @@
 import subprocess
 import requests
-import urllib
 import os
 import lief
-import zipfile
 import lzma
 import subprocess
 
 from ppadb.client import Client
-from xml.dom.minidom import parseString
-from aapt2 import aapt
 
 
 target = "<ENTER APP NAME HERE>"
